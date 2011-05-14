@@ -31,7 +31,7 @@
 typedef struct at_t at_t;
 typedef struct at_report_t at_report_t;
 
-typedef apr_status_t (*at_report_function_t)(at_report_t *r, const char *msg);
+typedef int (*at_report_function_t)(at_report_t *r, const char *msg);
 typedef void(*at_test_function_t)(at_t *t);
 typedef struct at_test_t at_test_t;
 
@@ -75,7 +75,7 @@ struct at_t {
 
 
 static APR_INLINE
-apr_status_t at_report(at_t *t, const char *msg) {
+int at_report(at_t *t, const char *msg) {
     at_report_t *r = t->report;
     return r->func(r, msg);
 }
@@ -86,10 +86,10 @@ void at_ok(at_t *t, int is_ok, const char *label, const char *file, int line);
 #define AT_ok(is_ok, label) at_ok(AT, is_ok, label, __FILE__, __LINE__)
 
 at_t *at_create(apr_pool_t *pool, unsigned char flags, at_report_t *report);
-apr_status_t at_begin(at_t *t, int total);
+int at_begin(at_t *t, int total);
 #define AT_begin(total) at_begin(AT, total)
 
-apr_status_t at_run(at_t *AT, const at_test_t *test);
+int at_run(at_t *AT, const at_test_t *test);
 #define AT_run(test) at_run(AT, test)
 
 void at_end(at_t *t);
@@ -118,7 +118,7 @@ void at_end(at_t *t);
 /* Additional reporting utils.
    These emit TAP comments, and are not "checks". */
 
-apr_status_t at_comment(at_t *t, const char *fmt, va_list vp);
+int at_comment(at_t *t, const char *fmt, va_list vp);
 
 static APR_INLINE
 void at_debug(at_t *t, const char *fmt, ...) {

@@ -22,14 +22,14 @@
 #include "apr_tables.h"
 
 
-apr_status_t at_begin(at_t *t, int total)
+int at_begin(at_t *t, int total)
 {
     char buf[32];
     apr_snprintf(buf, 32, "1..%d", total);
     return at_report(t, buf);
 }
 
-static apr_status_t test_cleanup(void *data)
+static int test_cleanup(void *data)
 {
     at_t *t = data;
     if (t->current < t->plan)
@@ -44,9 +44,9 @@ void at_end(at_t *t)
     test_cleanup(t);
 }
 
-apr_status_t at_comment(at_t *t, const char *fmt, va_list vp)
+int at_comment(at_t *t, const char *fmt, va_list vp)
 {
-    apr_status_t s;
+    int s;
     char buf[256], *b = buf + 2;
     char *end;
     int rv;
@@ -160,20 +160,20 @@ struct at_report_file {
 };
 
 
-static apr_status_t at_report_file_write(at_report_t *ctx, const char *msg)
+static int at_report_file_write(at_report_t *ctx, const char *msg)
 {
     struct at_report_file *r = (struct at_report_file *)ctx;
     apr_file_t *f = r->file;
     apr_size_t len = strlen(msg);
-    apr_status_t s;
+    int status;
 
-    s = apr_file_write_full(f, msg, len, &len);
-    if (s != APR_SUCCESS)
-        return s;
+    status = apr_file_write_full(f, msg, len, &len);
+    if (status != APR_SUCCESS)
+        return status;
 
-    s = apr_file_putc('\n', f);
-    if (s != APR_SUCCESS)
-        return s;
+    status = apr_file_putc('\n', f);
+    if (status != APR_SUCCESS)
+        return status;
 
     return apr_file_flush(f);
 }
@@ -201,7 +201,7 @@ struct at_report_local {
 };
 
 
-static apr_status_t report_local_cleanup(void *data)
+static int report_local_cleanup(void *data)
 {
     struct at_report_local *q = data;
     dAT = q->t;
@@ -217,7 +217,7 @@ static apr_status_t report_local_cleanup(void *data)
 }
 
 
-static apr_status_t at_report_local_write(at_report_t *ctx, const char *msg)
+static int at_report_local_write(at_report_t *ctx, const char *msg)
 {
     char buf[256];
     struct at_report_local *q = (struct at_report_local *)ctx;
@@ -308,7 +308,7 @@ static int* at_list(apr_pool_t *pool, const char *spec, int *list)
 
 
 
-apr_status_t at_run(at_t *AT, const at_test_t *test)
+int at_run(at_t *AT, const at_test_t *test)
 {
     int dummy = 0, fbuf[AT_NELTS], sbuf[AT_NELTS], tbuf[AT_NELTS];
     jmp_buf j;
