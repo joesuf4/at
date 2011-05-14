@@ -21,6 +21,8 @@
 #include "apr_strings.h"
 #include "apr_tables.h"
 
+#define AT_SUCCESS 0
+
 
 int at_begin(at_t *t, int total)
 {
@@ -80,7 +82,7 @@ int at_comment(at_t *t, const char *fmt, va_list vp)
         eol = strchr(b + 2, '\n');
         *eol = 0;
         s = at_report(t, b);
-        if (s != APR_SUCCESS || eol == end - 1)
+        if (s != AT_SUCCESS || eol == end - 1)
             break;
 
         b    = eol - 1;
@@ -141,7 +143,7 @@ void at_ok(at_t *t, int is_ok, const char *label, const char *file, int line)
         *end = '\0';
     }
 
-    if (memchr(buf, '\n', rv) != NULL || at_report(t, buf) != APR_SUCCESS)
+    if (memchr(buf, '\n', rv) != NULL || at_report(t, buf) != AT_SUCCESS)
         exit(-1);
 
     if (!is_ok && is_fatal) {
@@ -168,11 +170,11 @@ static int at_report_file_write(at_report_t *ctx, const char *msg)
     int status;
 
     status = apr_file_write_full(f, msg, len, &len);
-    if (status != APR_SUCCESS)
+    if (status != AT_SUCCESS)
         return status;
 
     status = apr_file_putc('\n', f);
-    if (status != APR_SUCCESS)
+    if (status != AT_SUCCESS)
         return status;
 
     return apr_file_flush(f);
@@ -213,7 +215,7 @@ static int report_local_cleanup(void *data)
     AT->fatal = q->saved_fatal;
 
     at_ok(q->t, 1, label, q->file, q->line);
-    return APR_SUCCESS;
+    return AT_SUCCESS;
 }
 
 
@@ -239,7 +241,7 @@ static int at_report_local_write(at_report_t *ctx, const char *msg)
         AT->current--;
         q->passed++;
     }
-    return APR_SUCCESS;
+    return AT_SUCCESS;
 }
 
 void at_report_local(at_t *AT, apr_pool_t *p, const char *file, int line)
@@ -336,7 +338,7 @@ int at_run(at_t *AT, const at_test_t *test)
     AT->abort = &j;
     if (setjmp(j) == 0) {
         test->func(AT);
-        return APR_SUCCESS;
+        return AT_SUCCESS;
     }
     AT->abort = NULL;
     return APR_EGENERAL;
