@@ -48,6 +48,11 @@ struct at_report_t {
     at_report_function_t func;
 };
 
+/* Private, portable snprintf implementation. 
+ */
+int at_snprintf(char *buf, int size, const char *format, ...);
+int at_vsnprintf(char *buf, int size, const char *format, va_list args); 
+
 /* We only need one at_t struct per test suite, so lets call it *AT.
  * The mnemonic we follow is that (for lowercase foo) "AT_foo(bar)"
  * should be syntactically equivalent to "at_foo(AT, bar)".
@@ -154,11 +159,11 @@ void at_check(at_t *t, int is_ok, const char *label, const char *file,
 
         if (fmt != NULL) {
             char *f;
-            apr_snprintf(format, sizeof format, " format: %s", fmt);
+            at_snprintf(format, sizeof format, " format: %s", fmt);
             at_trace(t, "%s", format);
             memcpy(format, "   left:", 8);
             f = format + strlen(format);
-            apr_snprintf(f, sizeof format - strlen(format), "\n  right: %s", fmt);
+            at_snprintf(f, sizeof format - strlen(format), "\n  right: %s", fmt);
             at_comment(t, format, vp);
         }
     }
@@ -173,8 +178,8 @@ void at_check(at_t *t, int is_ok, const char *label, const char *file,
     char fmt[] =  ", as %u-byte struct pointers";                       \
     char buf[256] = #a " != " #b;                                       \
     const unsigned blen = sizeof(#a " != " #b);                         \
-    apr_snprintf(buf + blen - 1, 256 - blen, fmt, sz);                  \
-    apr_snprintf(fmt, sizeof(fmt), "%%.%us", sz);                       \
+    at_snprintf(buf + blen - 1, 256 - blen, fmt, sz);                   \
+    at_snprintf(fmt, sizeof(fmt), "%%.%us", sz);                        \
     at_check(AT, memcmp(left, right, sz), buf, __FILE__, __LINE__,      \
            fmt, left, right);                                           \
 } while (0)                                                             \
@@ -185,8 +190,8 @@ void at_check(at_t *t, int is_ok, const char *label, const char *file,
     char fmt[] =  ", as %u-byte struct pointers";                       \
     char buf[256] = #a " == " #b;                                       \
     const unsigned blen = sizeof(#a " == " #b);                         \
-    apr_snprintf(buf + blen - 1, 256 - blen , fmt, sz);                 \
-    apr_snprintf(fmt, sizeof(fmt), "%%.%us", sz);                       \
+    at_snprintf(buf + blen - 1, 256 - blen , fmt, sz);                  \
+    at_snprintf(fmt, sizeof(fmt), "%%.%us", sz);                        \
     at_check(AT, !memcmp(left, right, sz), buf, __FILE__, __LINE__,     \
            fmt, left, right);                                           \
 } while (0)
@@ -250,8 +255,8 @@ void at_skip(at_t *t, int n, const char *reason, const char *file, int line) {
     char buf[256];
     while (n-- > 0) {
         ++t->current;
-        apr_snprintf(buf, 256, "ok %d - %s (%d) #skipped: %s (%s:%d)",
-                     t->current + t->prior, t->name, t->current, reason, file, line);
+        at_snprintf(buf, 256, "ok %d - %s (%d) #skipped: %s (%s:%d)",
+                    t->current + t->prior, t->name, t->current, reason, file, line);
         at_report(t, buf);
     }
 }

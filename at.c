@@ -25,7 +25,7 @@
 int at_begin(at_t *t, int total)
 {
     char buf[32];
-    apr_snprintf(buf, 32, "1..%d", total);
+    at_snprintf(buf, 32, "1..%d", total);
     return at_report(t, buf);
 }
 
@@ -50,7 +50,7 @@ int at_comment(at_t *t, const char *fmt, va_list vp)
     char buf[256], *b = buf + 2;
     char *end;
     int rv;
-    rv = apr_vsnprintf(b, 250, fmt, vp);
+    rv = at_vsnprintf(b, 250, fmt, vp);
 
     if (rv <= 0)
         return APR_EINVAL;
@@ -126,8 +126,8 @@ void at_ok(at_t *t, int is_ok, const char *label, const char *file, int line)
     else
         comment = is_todo ? "todo" : is_skip ? "skip" : "at";
 
-    rv = apr_snprintf(buf, 256, fmt, t->current + t->prior,
-                      label, comment,  file, line, t->current, t->name);
+    rv = at_snprintf(buf, 256, fmt, t->current + t->prior,
+                     label, comment,  file, line, t->current, t->name);
 
     if (rv <= 0)
         exit(-1);
@@ -146,8 +146,8 @@ void at_ok(at_t *t, int is_ok, const char *label, const char *file, int line)
 
     if (!is_ok && is_fatal) {
         while (t->current++ < t->plan) {
-            apr_snprintf(buf, 256, "not ok %d # skipped: aborting test %s",
-                     t->prior + t->current, t->name);
+            at_snprintf(buf, 256, "not ok %d # skipped: aborting test %s",
+                        t->prior + t->current, t->name);
             at_report(t, buf);
         }
         longjmp(*t->abort, 0);
@@ -207,7 +207,7 @@ static int report_local_cleanup(void *data)
     dAT = q->t;
     char label[32];
 
-    apr_snprintf(label, 32, "collected %d passing tests", q->passed);
+    at_snprintf(label, 32, "collected %d passing tests", q->passed);
 
     AT->report = q->saved_report;
     AT->fatal = q->saved_fatal;
@@ -229,8 +229,8 @@ static int at_report_local_write(at_report_t *ctx, const char *msg)
         AT->fatal = q->saved_fatal;
         apr_pool_cleanup_kill(q->pool, q, report_local_cleanup);
         while (AT->current++ < AT->plan) {
-            apr_snprintf(buf, 256, "not ok %d # skipped: aborting test %s",
-                     AT->prior + AT->current, AT->name);
+            at_snprintf(buf, 256, "not ok %d # skipped: aborting test %s",
+                        AT->prior + AT->current, AT->name);
             at_report(AT, buf);
         }
         longjmp(*AT->abort, 0);
@@ -341,3 +341,32 @@ int at_run(at_t *AT, const at_test_t *test)
     AT->abort = NULL;
     return APR_EGENERAL;
 }
+
+int at_snprintf(char *buf, int size, const char *format, ...)
+{
+    va_list args;
+    int status;
+    va_start(args, format);
+    status = at_vsnprintf(buf, size, format, args);
+    va_end(args);
+    return status;
+}
+
+int at_vsnprintf(char *buf, int size, const char *format, va_list args)
+{
+#ifdef _MSC_VER
+    int status = _vsnprintf(buf, size, format, args);
+    /* Make Microsoft's _vsnprintf behave like C99 vsnprintf on overflow:
+     * NULL-terminate, and return the number of chars printed minus one. */
+    if (status < 0) {
+        if (errno != EINVAL) {
+            status = size - 1;
+            buf[status] = '\0';
+        }
+    }
+    return status;
+#else 
+    return vsnprintf(buf, size, format, args);
+#endif /* _MSC_VER */
+}
+
