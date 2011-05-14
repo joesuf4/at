@@ -55,7 +55,7 @@ int at_comment(at_t *t, const char *fmt, va_list vp)
     rv = at_vsnprintf(b, 250, fmt, vp);
 
     if (rv <= 0)
-        return APR_EINVAL;
+        return EINVAL;
 
 
     end = b + rv;
