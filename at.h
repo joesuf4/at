@@ -22,10 +22,11 @@
 #define AT_H
 
 #include "apr.h"
-#include "apr_file_io.h"
+#include "apr_pools.h"
 #include <stdarg.h>
 #include <stdlib.h>
 #include <setjmp.h>
+#include <stdio.h>
 
 typedef struct at_t at_t;
 typedef struct at_report_t at_report_t;
@@ -265,13 +266,11 @@ void at_skip(at_t *t, int n, const char *reason, const char *file, int line) {
 
 /* Report utilities. */
 
-at_report_t *at_report_file_make(apr_pool_t *p, apr_file_t *f);
+at_report_t *at_report_file_make(apr_pool_t *p, FILE *f);
 APR_INLINE
 static at_report_t *at_report_stdout_make(apr_pool_t *p)
 {
-    apr_file_t *out;
-    apr_file_open_stdout(&out, p);
-    return at_report_file_make(p, out);
+    return at_report_file_make(p, stdout);
 }
 
 void at_report_local(at_t *AT, apr_pool_t *p, const char *file, int line);

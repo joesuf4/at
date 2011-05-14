@@ -15,7 +15,6 @@
 **  limitations under the License.
 */
 
-#include "apr_file_io.h"
 #include "at.h"
 #include "apr_lib.h"
 #include "apr_strings.h"
@@ -160,29 +159,30 @@ void at_ok(at_t *t, int is_ok, const char *label, const char *file, int line)
 
 struct at_report_file {
     at_report_t module;
-    apr_file_t *file;
+    FILE *file;
 };
 
 
 static int at_report_file_write(at_report_t *ctx, const char *msg)
 {
     struct at_report_file *r = (struct at_report_file *)ctx;
-    apr_file_t *f = r->file;
-    apr_size_t len = strlen(msg);
+    FILE *f = r->file;
+    size_t len = strlen(msg);
+    size_t bytes_written;
     int status;
 
-    status = apr_file_write_full(f, msg, len, &len);
-    if (status != AT_SUCCESS)
-        return status;
+    bytes_written = fwrite(msg, sizeof(char), len, f);
+    if (bytes_written != len)
+        return errno;
 
-    status = apr_file_putc('\n', f);
-    if (status != AT_SUCCESS)
-        return status;
+    status = putc('\n', f);
+    if (status == EOF)
+        return errno;
 
-    return apr_file_flush(f);
+    return fflush(f);
 }
 
-at_report_t *at_report_file_make(apr_pool_t *p, apr_file_t *f)
+at_report_t *at_report_file_make(apr_pool_t *p, FILE *f)
 {
     struct at_report_file *r = apr_palloc(p, sizeof *r);
     r->module.func = at_report_file_write;
