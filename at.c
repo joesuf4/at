@@ -16,10 +16,9 @@
 */
 
 #include "at.h"
-#include "apr_lib.h"
-#include "apr_strings.h"
 #include "apr_tables.h"
 #include <errno.h>
+#include <ctype.h>
 
 #define AT_SUCCESS 0
 #define AT_EGENERAL 14
@@ -304,11 +303,11 @@ static int* at_list(apr_pool_t *pool, const char *spec, int *list)
     arr.elts = (char *)list;
 
     do {
-        while (*spec && !apr_isdigit(*spec))
+        while (*spec && !isdigit((unsigned char)*spec))
             ++spec;
 
         prev = current;
-        current = (int)apr_strtoi64(spec, (char **)(void *)&spec, 10);
+        current = (int)strtol(spec, (char **)(void *)&spec, 10);
         *(int *)apr_array_push(&arr) = current;
 
     } while (prev >= current);
