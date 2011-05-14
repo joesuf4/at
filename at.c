@@ -22,6 +22,7 @@
 #include "apr_tables.h"
 
 #define AT_SUCCESS 0
+#define AT_EGENERAL 14
 
 
 int at_begin(at_t *t, int total)
@@ -341,7 +342,7 @@ int at_run(at_t *AT, const at_test_t *test)
         return AT_SUCCESS;
     }
     AT->abort = NULL;
-    return APR_EGENERAL;
+    return AT_EGENERAL;
 }
 
 int at_snprintf(char *buf, int size, const char *format, ...)
