@@ -198,7 +198,7 @@ struct at_report_local {
     at_report_t *saved_report;
     const int   *saved_fatal;
     int          dummy_fatal;
-    const char  *file;
+    char        *file;
     int          line;
     int          passed;
     apr_pool_t  *pool;
@@ -217,6 +217,9 @@ static int report_local_cleanup(void *data)
     AT->fatal = q->saved_fatal;
 
     at_ok(q->t, 1, label, q->file, q->line);
+
+    free(q->file);
+
     return AT_SUCCESS;
 }
 
@@ -249,15 +252,20 @@ static int at_report_local_write(at_report_t *ctx, const char *msg)
 void at_report_local(at_t *AT, apr_pool_t *p, const char *file, int line)
 {
     struct at_report_local *q = apr_palloc(p, sizeof *q);
+    size_t len;
+
     q->module.func = at_report_local_write;
     q->t = AT;
     q->saved_report = AT->report;
     q->saved_fatal = AT->fatal;
     q->dummy_fatal = 0;
-    q->file = apr_pstrdup(p, file);
     q->line = line;
     q->passed = 0;
     q->pool = p;
+
+    len = strlen(file) + 1;
+    q->file = (char*)malloc(len);
+    memcpy(q->file, file, len);
 
     AT->fatal = &q->dummy_fatal;
     AT->report = &q->module;
