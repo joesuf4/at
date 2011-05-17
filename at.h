@@ -26,7 +26,6 @@
 #include <stdarg.h>
 #include <stdlib.h>
 #include <setjmp.h>
-#include "apr_strings.h"
 
 typedef struct at_t at_t;
 typedef struct at_report_t at_report_t;

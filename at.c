@@ -20,6 +20,7 @@
 #include "apr_lib.h"
 #include "apr_strings.h"
 #include "apr_tables.h"
+#include <errno.h>
 
 #define AT_SUCCESS 0
 #define AT_EGENERAL 14
