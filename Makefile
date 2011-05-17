@@ -1,6 +1,6 @@
 all:               libat.a
 
-libat.a:  at.c
+libat.a:  at.o
 	$(AR) rv $@ $?
 
 clean:
