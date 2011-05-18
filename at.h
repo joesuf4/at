@@ -212,13 +212,13 @@ void at_check(at_t *t, int is_ok, const char *label, const char *file,
 #define AT_ptr_eq(a, b) do {                                    \
     const void *left = a, *right = b;                           \
     at_check(AT, left == right, #a " == " #b ", as pointers",   \
-            __FILE__, __LINE__, "%pp", left, right);            \
+            __FILE__, __LINE__, "%x", left, right);             \
 } while (0)
 
 #define AT_ptr_ne(a, b) do {                                    \
     const void *left = a, *right = b;                           \
     at_check(AT, left != right, #a " != " #b ", as pointers",   \
-            __FILE__, __LINE__, "%pp", left, right);            \
+            __FILE__, __LINE__, "%x", left, right);             \
 } while (0)
 
 
