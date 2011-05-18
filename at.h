@@ -266,7 +266,7 @@ void at_skip(at_t *t, int n, const char *reason, const char *file, int line) {
 
 at_report_t *at_report_file_make(FILE *f);
 inline
-static at_report_t *at_report_stdout_make()
+static at_report_t *at_report_stdout_make(void)
 {
     return at_report_file_make(stdout);
 }
