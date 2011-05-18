@@ -7,7 +7,7 @@ libat.a:  at.o
 	$(AR) rv $@ $?
 
 at.o: at.c at.h
-	$(CC) $(DEBUG) -o $@ at.c
+	$(CC) $(DEBUG) -c -o $@ at.c
 
 clean:
 	rm -f *.a *.o
