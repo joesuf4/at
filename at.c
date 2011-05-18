@@ -238,8 +238,7 @@ static int at_report_local_write(at_report_t *ctx, const char *msg)
 
     if (strncmp(msg, "not ok", 6) == 0) {
         q->saved_report->func(q->saved_report, msg);
-        AT->report = q->saved_report;
-        AT->fatal = q->saved_fatal;
+        report_local_cleanup(q);
         while (AT->current++ < AT->plan) {
             at_snprintf(buf, 256, "not ok %d # skipped: aborting test %s",
                         AT->prior + AT->current, AT->name);
