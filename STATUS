@@ -1,8 +1,9 @@
 TODO
 
-1) remove apr dependency
+1) remove apr dependency (done)
 
 2) provide example test suite
 
 3) docs
 
+4) better error checking
