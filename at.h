@@ -21,12 +21,11 @@
 #ifndef AT_H
 #define AT_H
 
-#include "apr.h"
-#include "apr_pools.h"
 #include <stdarg.h>
 #include <stdlib.h>
 #include <setjmp.h>
 #include <stdio.h>
+#include <string.h>
 
 typedef struct at_t at_t;
 typedef struct at_report_t at_report_t;
@@ -73,13 +72,12 @@ struct at_t {
     const int           *todo;    /* list of expected failures */
     at_report_t         *report  ;/* handles the results of each check */
     unsigned char        flags;   /* verbosity: concise, trace, debug, etc. */
-    apr_pool_t          *pool;    /* creator pool with end-of-test cleanup */
     jmp_buf             *abort;   /* where fatals go to die */
 };
 
 
 
-static APR_INLINE
+static inline
 int at_report(at_t *t, const char *msg) {
     at_report_t *r = t->report;
     return r->func(r, msg);
@@ -90,7 +88,7 @@ int at_report(at_t *t, const char *msg) {
 void at_ok(at_t *t, int is_ok, const char *label, const char *file, int line);
 #define AT_ok(is_ok, label) at_ok(AT, is_ok, label, __FILE__, __LINE__)
 
-at_t *at_create(apr_pool_t *pool, unsigned char flags, at_report_t *report);
+at_t *at_create(unsigned char flags, at_report_t *report);
 int at_begin(at_t *t, int total);
 #define AT_begin(total) at_begin(AT, total)
 
@@ -125,7 +123,7 @@ void at_end(at_t *t);
 
 int at_comment(at_t *t, const char *fmt, va_list vp);
 
-static APR_INLINE
+static inline
 void at_debug(at_t *t, const char *fmt, ...) {
     va_list vp;
     va_start(vp, fmt);
@@ -134,7 +132,7 @@ void at_debug(at_t *t, const char *fmt, ...) {
     va_end(vp);
 }
 
-static APR_INLINE
+static inline
 void at_trace(at_t *t, const char *fmt, ...) {
     va_list vp;
     va_start(vp, fmt);
@@ -146,7 +144,7 @@ void at_trace(at_t *t, const char *fmt, ...) {
 
 /* These are "checks". */
 
-static APR_INLINE
+static inline
 void at_check(at_t *t, int is_ok, const char *label, const char *file,
            int line, const char *fmt, ...)
 {
@@ -250,7 +248,7 @@ void at_check(at_t *t, int is_ok, const char *label, const char *file,
                                   __FILE__, __LINE__, fmt, a, b)
 
 
-static APR_INLINE
+static inline
 void at_skip(at_t *t, int n, const char *reason, const char *file, int line) {
     char buf[256];
     while (n-- > 0) {
@@ -266,15 +264,18 @@ void at_skip(at_t *t, int n, const char *reason, const char *file, int line) {
 
 /* Report utilities. */
 
-at_report_t *at_report_file_make(apr_pool_t *p, FILE *f);
-APR_INLINE
-static at_report_t *at_report_stdout_make(apr_pool_t *p)
+at_report_t *at_report_file_make(FILE *f);
+inline
+static at_report_t *at_report_stdout_make()
 {
-    return at_report_file_make(p, stdout);
+    return at_report_file_make(stdout);
 }
+void at_report_file_cleanup(at_report_t *r);
+#define at_report_stdout_cleanup(r) at_report_file_cleanup(r)
 
-void at_report_local(at_t *AT, apr_pool_t *p, const char *file, int line);
-#define AT_localize(p) at_report_local(AT, p, __FILE__, __LINE__)
-
+void at_report_local(at_t *AT, const char *file, int line);
+#define AT_localize() at_report_local(AT, __FILE__, __LINE__)
+void at_report_delocalize(at_t *AT);
+#define AT_delocalize() at_report_delocalize(AT)
 
 #endif /* AT_H */

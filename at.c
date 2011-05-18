@@ -16,7 +16,6 @@
 */
 
 #include "at.h"
-#include "apr_tables.h"
 #include <errno.h>
 #include <ctype.h>
 
@@ -42,8 +41,8 @@ static int test_cleanup(void *data)
 
 void at_end(at_t *t)
 {
-    apr_pool_cleanup_kill(t->pool, t, test_cleanup);
     test_cleanup(t);
+    free(t);
 }
 
 int at_comment(at_t *t, const char *fmt, va_list vp)
@@ -161,7 +160,6 @@ struct at_report_file {
     FILE *file;
 };
 
-
 static int at_report_file_write(at_report_t *ctx, const char *msg)
 {
     struct at_report_file *r = (struct at_report_file *)ctx;
@@ -181,28 +179,31 @@ static int at_report_file_write(at_report_t *ctx, const char *msg)
     return fflush(f);
 }
 
-at_report_t *at_report_file_make(apr_pool_t *p, FILE *f)
+at_report_t *at_report_file_make(FILE *f)
 {
-    struct at_report_file *r = apr_palloc(p, sizeof *r);
+    struct at_report_file *r = malloc(sizeof *r);
     r->module.func = at_report_file_write;
     r->file = f;
     return &r->module;
 }
 
-
+void at_report_file_cleanup(at_report_t *r)
+{
+    free(r);
+}
 
 struct at_report_local {
     at_report_t  module;
     at_t        *t;
     at_report_t *saved_report;
     const int   *saved_fatal;
+    const int   *saved_skip;
+    const int   *saved_todo;
     int          dummy_fatal;
     char        *file;
     int          line;
     int          passed;
-    apr_pool_t  *pool;
 };
-
 
 static int report_local_cleanup(void *data)
 {
@@ -213,15 +214,21 @@ static int report_local_cleanup(void *data)
     at_snprintf(label, 32, "collected %d passing tests", q->passed);
 
     AT->report = q->saved_report;
-    AT->fatal = q->saved_fatal;
+    AT->fatal  = q->saved_fatal;
+    AT->skip   = q->saved_skip;
+    AT->todo   = q->saved_todo;
 
     at_ok(q->t, 1, label, q->file, q->line);
 
     free(q->file);
+    free(q);
 
     return AT_SUCCESS;
 }
 
+void at_report_delocalize(at_t *AT) {
+    report_local_cleanup(AT->report);
+}
 
 static int at_report_local_write(at_report_t *ctx, const char *msg)
 {
@@ -233,7 +240,6 @@ static int at_report_local_write(at_report_t *ctx, const char *msg)
         q->saved_report->func(q->saved_report, msg);
         AT->report = q->saved_report;
         AT->fatal = q->saved_fatal;
-        apr_pool_cleanup_kill(q->pool, q, report_local_cleanup);
         while (AT->current++ < AT->plan) {
             at_snprintf(buf, 256, "not ok %d # skipped: aborting test %s",
                         AT->prior + AT->current, AT->name);
@@ -248,80 +254,81 @@ static int at_report_local_write(at_report_t *ctx, const char *msg)
     return AT_SUCCESS;
 }
 
-void at_report_local(at_t *AT, apr_pool_t *p, const char *file, int line)
+void at_report_local(at_t *AT, const char *file, int line)
 {
-    struct at_report_local *q = apr_palloc(p, sizeof *q);
+    struct at_report_local *q = malloc(sizeof *q);
     size_t len;
 
     q->module.func = at_report_local_write;
     q->t = AT;
     q->saved_report = AT->report;
     q->saved_fatal = AT->fatal;
+    q->saved_skip = AT->skip;
+    q->saved_todo = AT->todo;
     q->dummy_fatal = 0;
     q->line = line;
     q->passed = 0;
-    q->pool = p;
 
     len = strlen(file) + 1;
     q->file = (char*)malloc(len);
     memcpy(q->file, file, len);
 
-    AT->fatal = &q->dummy_fatal;
+    AT->fatal = AT->skip = AT->todo = &q->dummy_fatal;
     AT->report = &q->module;
 
     if (*q->saved_fatal == AT->current + 1)
         q->saved_fatal++;
 
-    apr_pool_cleanup_register(p, q, report_local_cleanup,
-                                    report_local_cleanup);
 }
 
-
-at_t *at_create(apr_pool_t *pool, unsigned char flags, at_report_t *report)
+at_t *at_create(unsigned char flags, at_report_t *report)
 {
-    at_t *t = apr_pcalloc(pool, sizeof *t);
+    at_t *t = calloc(sizeof *t, 1);
     t->flags = flags;
     t->report = report;
-    t->pool = pool;
-
-    apr_pool_cleanup_register(pool, t, test_cleanup, test_cleanup);
     return t;
 }
 
-
-#define AT_NELTS 4
-
-static int* at_list(apr_pool_t *pool, const char *spec, int *list)
+static int* at_list(const char *spec)
 {
-    apr_array_header_t arr;
-    int prev, current = 0;
-
-    arr.pool = pool;
-    arr.elt_size = sizeof *list;
-    arr.nelts = 0;
-    arr.nalloc = AT_NELTS;
-    arr.elts = (char *)list;
+    int prev, current = 0, count = 0, idx = 0, *elts;
+    const char *start = spec;
 
     do {
         while (*spec && !isdigit((unsigned char)*spec))
             ++spec;
-
         prev = current;
         current = (int)strtol(spec, (char **)(void *)&spec, 10);
-        *(int *)apr_array_push(&arr) = current;
+        ++count;
 
-    } while (prev >= current);
+    } while (prev <= current);
 
-    *(int *)apr_array_push(&arr) = 0; /* sentinel */
+    elts = malloc(++count * sizeof *elts);
+    spec = start;
+    current = 0;
 
-    return (int *)arr.elts;
+    do {
+        while (*spec && !isdigit((unsigned char)*spec))
+            ++spec;
+        prev = current;
+        current = (int)strtol(spec, (char **)(void *)&spec, 10);
+        elts[idx++] = current;
+
+    } while (prev <= current);
+
+    elts[idx] = 0; /* sentinel */
+
+    return elts;
 }
 
-
+#define at_free_lists do { if (flist) free((void *)flist);       \
+                           if (slist) free((void *)slist);       \
+                           if (tlist) free((void *)tlist); } while (0)
 
 int at_run(at_t *AT, const at_test_t *test)
 {
-    int dummy = 0, fbuf[AT_NELTS], sbuf[AT_NELTS], tbuf[AT_NELTS];
+    int dummy = 0;
+    const int *flist = NULL, *slist = NULL, *tlist = NULL;
     jmp_buf j;
 
     AT->current = 0;
@@ -330,25 +337,27 @@ int at_run(at_t *AT, const at_test_t *test)
     AT->plan    = test->plan;
 
     if (test->fatals)
-        AT->fatal = at_list(AT->pool, test->fatals, fbuf);
+        flist = AT->fatal = at_list(test->fatals);
     else
         AT->fatal = &dummy;
 
     if (test->skips)
-        AT->skip = at_list(AT->pool, test->skips, sbuf);
+        slist = AT->skip = at_list(test->skips);
     else
         AT->skip = &dummy;
 
     if (test->todos)
-        AT->todo = at_list(AT->pool, test->todos, tbuf);
+        tlist = AT->todo = at_list(test->todos);
     else
         AT->todo = &dummy;
 
     AT->abort = &j;
     if (setjmp(j) == 0) {
         test->func(AT);
+        at_free_lists;
         return AT_SUCCESS;
     }
+    at_free_lists;
     AT->abort = NULL;
     return AT_EGENERAL;
 }
