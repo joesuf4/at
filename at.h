@@ -165,6 +165,20 @@ void at_check(at_t *t, int is_ok, const char *label, const char *file,
             at_comment(t, format, vp);
         }
     }
+    else if (AT_FLAG_DEBUG(t->flags) && !is_ok) {
+        char format[32] = "testing: %s (%s:%d)";
+        at_debug(t, format, label, file, line);
+
+        if (fmt != NULL) {
+            char *f;
+            at_snprintf(format, sizeof format, " format: %s", fmt);
+            at_debug(t, "%s", format);
+            memcpy(format, "   left:", 8);
+            f = format + strlen(format);
+            at_snprintf(f, sizeof format - strlen(format), "\n  right: %s", fmt);
+            at_comment(t, format, vp);
+        }
+    }
     va_end(vp);
     at_ok(t, is_ok, label, file, line);
 }
