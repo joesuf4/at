@@ -31,13 +31,14 @@ typedef struct at_t at_t;
 typedef struct at_report_t at_report_t;
 
 typedef int (*at_report_function_t)(at_report_t *r, const char *msg);
-typedef void(*at_test_function_t)(at_t *t);
+typedef void(*at_test_function_t)(at_t *t, void *ctx);
 typedef struct at_test_t at_test_t;
 
 struct at_test_t {
     const char          *name;
     at_test_function_t   func;
     int                  plan;
+    void                *ctx;
     const char          *fatals;
     const char          *skips;
     const char          *todos;
