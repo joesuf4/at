@@ -4,3 +4,55 @@ at.h provides a portable TAP compliant test framework for C applications.
 
 Features fatal, skip, and todo lists, __LINE__ and __FILE__ output, and "localization".
 
+
+USAGE:
+
+---------- Typical code snippet ----------
+
+#include "at.h"
+
+#define dT(func, plan) #func, func, plan, NULL
+
+int main(int argc, char *argv[])
+{
+    unsigned i, plan = 0;
+    dAT;
+    at_test_t test_list [] = {
+        { dT(jar_make, 14) },
+        { dT(jar_get_rfc, 6), "1 3 5" },
+        { dT(jar_get_ns, 10) },
+        { dT(netscape_cookie, 7) },
+        { dT(rfc_cookie, 6) },
+    };
+    at_report_t *r = at_report_stdout_make();
+
+    AT = at_create(0, r);
+
+    for (i = 0; i < sizeof(test_list) / sizeof(at_test_t);  ++i)
+        plan += test_list[i].plan;
+
+    AT_begin(plan);
+
+    for (i = 0; i < sizeof(test_list) / sizeof(at_test_t);  ++i)
+        AT_run(&test_list[i]);
+
+    AT_end();
+    at_report_stdout_cleanup(r);
+
+    return 0;
+}
+
+------------------------------
+
+The test functions above are named jar_make, jar_get_rfc, jar_get_ns,
+netscape_cookie, and rfc_cookie.  Each one has signature
+
+void function(dAT, void *ctx)
+
+The ctx ptr can pass local data to the test function (eg. a request_rec ptr).
+Each test function will contain a battery of "checks" (for jar_make there are 14,
+for jar_get_rfc there are 6, etc.) that produce TAP output.
+
+Note the TAP output is handled by the at_report_t ptr, so you can write to
+a bucket brigade, a socket, whatever.  You just need to create a custom function
+to extend the at_report_t ptr that's passed to at_create().
