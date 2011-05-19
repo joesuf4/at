@@ -117,10 +117,13 @@ void at_ok(at_t *t, int is_ok, const char *label, const char *file, int line)
         t->todo++;
         is_todo = 1;
     }
+    
+    if (AT_FLAG_TODO(t->flags))
+        is_todo = 1;
 
     if (AT_FLAG_CONCISE(t->flags))
         format[9] = '\0';
-    else if (is_ok && !AT_FLAG_TRACE(t->flags))
+    else if (is_ok && ! is_todo && !AT_FLAG_TRACE(t->flags))
         format[14] = '\0';
     else if (is_fatal && ! is_ok)
         comment = "fatal";
