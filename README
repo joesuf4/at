@@ -56,3 +56,9 @@ for jar_get_rfc there are 6, etc.) that produce TAP output.
 Note the TAP output is handled by the at_report_t ptr, so you can write to
 a bucket brigade, a socket, whatever.  You just need to create a custom function
 to extend the at_report_t ptr that's passed to at_create().
+
+==================================================
+ALL PULL REQUESTS WILL BE TREATED AS IF THEY WERE BEING SUBMITTED DIRECTLY TO THE ASF:
+that means substantial contributions MUST have a corresponding ICLA on file with the ASF
+prior to acceptance.
+==================================================
