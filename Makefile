@@ -4,7 +4,8 @@ DEBUG=
 all:               libat.a
 
 libat.a:  at.o
-	$(AR) rsv $@ $?
+	$(AR) -rv $@ $?
+	$(AR) -s  $@
 
 at.o: at.c at.h
 	$(CC) $(DEBUG) -c -o $@ at.c
